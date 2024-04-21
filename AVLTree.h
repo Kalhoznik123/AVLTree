@@ -14,6 +14,7 @@ using namespace std;
 //TODO:: добавить конструктор с листом инициализации
 //TODO:: добавить операторы сравнения
 //TODO:: конструкторы
+//TODO:: добавить тесты
 
 template <typename Type,
           typename Compare = std::less<Type>,
@@ -129,10 +130,11 @@ private:
 public:
     using value_type = Type;
     using reference = Type&;
-    using const_reference = const Type&;
+    using const_reference =  const Type&;
     using difference_type =  std::ptrdiff_t;
-
-
+    using value_compare = Compare;
+    using pointer = typename std::allocator_traits<Allocator>::pointer;
+    using const_pointer = typename std::allocator_traits<Allocator>::const_pointer;
     using iterator = BasicIterator<Type>;
     using const_Iterator = BasicIterator<const Type>;
     using reverse_iterator = std::reverse_iterator<iterator>;
@@ -142,14 +144,12 @@ public:
 
     AVLTree(const Compare& comp):comp_(comp){};
 
-    AVLTree(const AVLTree& rhs){
-        root_ = CopyHelper(rhs.root_,root_);
-        FillParentPointers(root_);
-        size_ = rhs.size_;
-        comp_ = rhs.comp_;
-        alloc_ = rhs.alloc_;
-    }
-
+    AVLTree(const AVLTree& rhs);
+    template<typename InputIt>
+    AVLTree(InputIt first,InputIt last,const Compare comp = Compare(),const Allocator& alloc = Allocator()):
+        comp_(comp),main_alloc_(alloc){}
+    template<typename InputIt>
+    AVLTree(InputIt first,InputIt last,const Allocator& alloc = Allocator()):AVLTree(first,last,Compare(),alloc){}
     AVLTree& operator= (const AVLTree& rhs){
         if(this == &rhs){
             return *this;
@@ -159,9 +159,7 @@ public:
         return *this;
     }
 
-    ~AVLTree(){
-        AVLClear(root_);
-    }
+    ~AVLTree();
 
     //сравнение это не поэлементное счравнение а все ли элементыодного множества содержатсяв другом
     bool operator==(const AVLTree& rhs) const;
@@ -174,9 +172,8 @@ public:
     size_t Size() const;
     bool Empty();
     void Remove(const Type& val_to_del);
-
+    void Clear();
     value_type Find(const Type& value_to_find);
-
     [[nodiscard]] iterator begin() noexcept;
     [[nodiscard]] iterator end() noexcept;
     // Константные версии begin/end для обхода списка без возможности модификации его элементов
@@ -197,12 +194,11 @@ public:
 private:
     using AllocTraits = std::allocator_traits<Allocator>;
     using AllocTraitsNode = typename AllocTraits::template rebind_traits<Node>;
-
     Node* root_ = nullptr;
-    size_t size_{0};    
-    Compare comp_;
+    size_t size_{0};
+    const  Compare comp_;
     typename AllocTraits::template rebind_alloc<Node> alloc_;
-
+    const Allocator main_alloc_;
     size_t Height(Node* p);
     size_t GetHeight(Node* vertex);
     void FixHeight(Node* p);
@@ -242,6 +238,20 @@ typename AVLTree<Type, Compare, Allocator>::const_Iterator AVLTree<Type, Compare
     Node* node = TreeMin(root_);
     Node* prev_node = nullptr;
     return const_Iterator{node,prev_node};
+}
+
+template<typename Type, typename Compare, typename Allocator>
+AVLTree<Type, Compare, Allocator>::AVLTree(const AVLTree &rhs){
+    root_ = CopyHelper(rhs.root_,root_);
+    FillParentPointers(root_);
+    size_ = rhs.size_;
+    comp_ = rhs.comp_;
+    alloc_ = rhs.alloc_;
+}
+
+template<typename Type, typename Compare, typename Allocator>
+AVLTree<Type, Compare, Allocator>::~AVLTree(){
+    AVLClear(root_);
 }
 
 template<typename Type, typename Compare, typename Allocator>
@@ -286,6 +296,12 @@ template<typename Type, typename Compare, typename Allocator>
 typename AVLTree<Type, Compare, Allocator>::value_type AVLTree<Type, Compare, Allocator>::Find(const Type &value_to_find){
     Node* res = FindHelper(root_,value_to_find);
     return  res != nullptr ? res->value_ : value_type();
+}
+
+template<typename Type, typename Compare, typename Allocator>
+void AVLTree<Type, Compare, Allocator>::Clear(){
+    AVLClear(root_);
+    size_ = 0;
 }
 
 template<typename Type, typename Compare, typename Allocator>
