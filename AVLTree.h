@@ -147,6 +147,7 @@ public:
         FillParentPointers(root_);
         size_ = rhs.size_;
         comp_ = rhs.comp_;
+        alloc_ = rhs.alloc_;
     }
 
     AVLTree& operator= (const AVLTree& rhs){
@@ -163,135 +164,198 @@ public:
     }
 
     //сравнение это не поэлементное счравнение а все ли элементыодного множества содержатсяв другом
-    bool operator==(const AVLTree& rhs) const{
-        return  (size_ == rhs.size_) && std::equal(begin(),end(),rhs.begin(),rhs.end(),std::equal_to{});
-    }
-    bool operator!=(const AVLTree& rhs) const{
-        return  !(*this == rhs);
-    }
+    bool operator==(const AVLTree& rhs) const;
+    bool operator!=(const AVLTree& rhs) const;
 
-    void Swap(AVLTree& rhs){
-        std::swap(size_,rhs.size_);
-        std::swap(root_,rhs.root_);
-        std::swap(comp_,rhs.comp_);
-    }
+    void Swap(AVLTree& rhs);
 
-    void Insert(const Type& key){
-        root_ = InsertHelper(root_,key);
-    }
+    void Insert(const Type& key);
 
-    size_t Size() const{
-        return  size_;
-    }
-    bool Empty(){
-        return  size_ == 0;
-    }
-    void Remove(const Type& val_to_del){
-        if(!Empty())
-            root_ = RemoveNode(root_,val_to_del);
-    }
-    value_type Find(const Type& value_to_find){
-        Node* res = FindHelper(root_,value_to_find);
-        return  res != nullptr ? res->value_ : value_type();
-    }
-    [[nodiscard]] Iterator begin() noexcept {
-        Node* node = TreeMin(root_);
-        Node* prev_node = nullptr;
-        return Iterator{node,prev_node};
-    }
-    [[nodiscard]] Iterator end() noexcept {
-        Node* prev_node = TreeMax(root_);
-        return Iterator{prev_node->right_, prev_node};
-    }
+    size_t Size() const;
+    bool Empty();
+    void Remove(const Type& val_to_del);
+
+    value_type Find(const Type& value_to_find);
+
+    [[nodiscard]] Iterator begin() noexcept;
+    [[nodiscard]] Iterator end() noexcept;
     // Константные версии begin/end для обхода списка без возможности модификации его элементов
-    [[nodiscard]] ConstIterator begin() const noexcept {
-        Node* node = TreeMin(root_);
-        Node* prev_node = nullptr;
-        return ConstIterator{node,prev_node};
-    }
-    [[nodiscard]] ConstIterator end() const noexcept {
-        Node* prev_node = TreeMax(root_);
-        return ConstIterator{prev_node->right_, prev_node};
-    }
+    [[nodiscard]] ConstIterator begin() const noexcept;
+    [[nodiscard]] ConstIterator end() const noexcept;
     // Методы для удобного получения константных итераторов у неконстантного контейнера
-    [[nodiscard]] ConstIterator cbegin() const noexcept {
-        Node* node = TreeMin(root_);
-        Node* prev_node = nullptr;
-        return ConstIterator{node,prev_node};
-    }
-    [[nodiscard]] ConstIterator cend() const noexcept {
-        Node* prev_node = TreeMax(root_);
-        return ConstIterator{prev_node->right_, prev_node};
-    }
-    [[nodiscard]] Reverse_iterator rbegin()  noexcept {
-        return Reverse_iterator(end());
-    }
-    [[nodiscard]] Reverse_iterator rend()  noexcept {
-        return Reverse_iterator(begin());
-    }
+    [[nodiscard]] ConstIterator cbegin() const noexcept;
+    [[nodiscard]] ConstIterator cend() const noexcept;
+    [[nodiscard]] Reverse_iterator rbegin()  noexcept;
+    [[nodiscard]] Reverse_iterator rend()  noexcept;
 
-    [[nodiscard]] Const_reverse_iterator rbegin() const noexcept {
-        return Const_reverse_iterator(end());
-    }
-    [[nodiscard]] Const_reverse_iterator rend() const noexcept {
-        return Const_reverse_iterator(begin());
-    }
-    [[nodiscard]] Const_reverse_iterator crbegin() const noexcept {
-        return Const_reverse_iterator(cend());
-    }
-    [[nodiscard]] Const_reverse_iterator crend() const noexcept {
-        return Const_reverse_iterator(cbegin());
-    }
+    [[nodiscard]] Const_reverse_iterator rbegin() const noexcept;
+    [[nodiscard]] Const_reverse_iterator rend() const noexcept;
+    [[nodiscard]] Const_reverse_iterator crbegin() const noexcept;
+    [[nodiscard]] Const_reverse_iterator crend() const noexcept;
 
 
 private:
     using AllocTraits = std::allocator_traits<Allocator>;
+    using AllocTraitsNode = typename AllocTraits::template rebind_traits<Node>;
 
     Node* root_ = nullptr;
     size_t size_{0};    
     Compare comp_;
-    typename AllocTraits::template rebind_alloc<Node> alloc;
-    using AllocTraitsNode = typename AllocTraits::template rebind_traits<Node>;
+    typename AllocTraits::template rebind_alloc<Node> alloc_;
 
-    size_t Height(Node* p){
-        return p?p->height_:0;
-    }
-
-    void FixHeight(Node* p){
-        size_t hl = Height(p->left_);
-        size_t hr = Height(p->right_);
-        p->height_ = (hl>hr?hl:hr)+1;
-    }
-
-    void AVLClear(Node* root){
-        if(root != nullptr){
-            AVLClear(root->left_);
-            AVLClear(root->right_);
-
-            root->~Node();
-            AllocTraitsNode::deallocate(alloc,root,1);
-            //delete  root;
-        }
-    }
-
+    size_t Height(Node* p);
+    size_t GetHeight(Node* vertex);
+    void FixHeight(Node* p);
+    void AVLClear(Node* root);
+    void FillParentPointers(Node* root);
     Node* RemoveNode(Node* root, Type val_to_del);
-
-
-
     Node* FindHelper(Node* root, const Type& value_to_find) const;
     Node* CopyHelper(const Node* lhs, Node* root);
-    void FillParentPointers(Node* root);
     Node* SmallLeftRotation(Node* a);
     Node* SmallRightRotation(Node* a);
-    size_t GetHeight(Node* vertex);
     Node* BigLeftRotation(Node* v);
     Node* BigRightRotation(Node* v);
     Node* Rotate(Node* vertex);
     Node* InsertHelper(Node* vertex, const Type& value);
     static  Node* TreeMin(Node* root);
     static  Node* TreeMax(Node* root);
-
 };
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Reverse_iterator AVLTree<Type, Compare, Allocator>::rend() noexcept {
+    return Reverse_iterator(begin());
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Const_reverse_iterator AVLTree<Type, Compare, Allocator>::rbegin() const noexcept {
+    return Const_reverse_iterator(end());
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Iterator AVLTree<Type, Compare, Allocator>::end() noexcept {
+    Node* prev_node = TreeMax(root_);
+    return Iterator{prev_node->right_, prev_node};
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::ConstIterator AVLTree<Type, Compare, Allocator>::begin() const noexcept {
+    Node* node = TreeMin(root_);
+    Node* prev_node = nullptr;
+    return ConstIterator{node,prev_node};
+}
+
+template<typename Type, typename Compare, typename Allocator>
+bool AVLTree<Type, Compare, Allocator>::operator==(const AVLTree &rhs) const{
+    return  (size_ == rhs.size_) && std::equal(begin(),end(),rhs.begin(),rhs.end(),std::equal_to{});
+}
+
+template<typename Type, typename Compare, typename Allocator>
+bool AVLTree<Type, Compare, Allocator>::operator!=(const AVLTree &rhs) const{
+    return  !(*this == rhs);
+}
+
+template<typename Type, typename Compare, typename Allocator>
+void AVLTree<Type, Compare, Allocator>::Swap(AVLTree &rhs){
+    std::swap(size_,rhs.size_);
+    std::swap(root_,rhs.root_);
+    std::swap(comp_,rhs.comp_);
+}
+
+template<typename Type, typename Compare, typename Allocator>
+void AVLTree<Type, Compare, Allocator>::Insert(const Type &key){
+    root_ = InsertHelper(root_,key);
+}
+
+template<typename Type, typename Compare, typename Allocator>
+size_t AVLTree<Type, Compare, Allocator>::Size() const{
+    return  size_;
+}
+
+template<typename Type, typename Compare, typename Allocator>
+bool AVLTree<Type, Compare, Allocator>::Empty(){
+    return  size_ == 0;
+}
+
+template<typename Type, typename Compare, typename Allocator>
+void AVLTree<Type, Compare, Allocator>::Remove(const Type &val_to_del){
+    if(!Empty())
+        root_ = RemoveNode(root_,val_to_del);
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::value_type AVLTree<Type, Compare, Allocator>::Find(const Type &value_to_find){
+    Node* res = FindHelper(root_,value_to_find);
+    return  res != nullptr ? res->value_ : value_type();
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Iterator AVLTree<Type, Compare, Allocator>::begin() noexcept {
+    Node* node = TreeMin(root_);
+    Node* prev_node = nullptr;
+    return Iterator{node,prev_node};
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::ConstIterator AVLTree<Type, Compare, Allocator>::end() const noexcept {
+    Node* prev_node = TreeMax(root_);
+    return ConstIterator{prev_node->right_, prev_node};
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::ConstIterator AVLTree<Type, Compare, Allocator>::cbegin() const noexcept {
+    Node* node = TreeMin(root_);
+    Node* prev_node = nullptr;
+    return ConstIterator{node,prev_node};
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::ConstIterator AVLTree<Type, Compare, Allocator>::cend() const noexcept {
+    Node* prev_node = TreeMax(root_);
+    return ConstIterator{prev_node->right_, prev_node};
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Reverse_iterator AVLTree<Type, Compare, Allocator>::rbegin() noexcept {
+    return Reverse_iterator(end());
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Const_reverse_iterator AVLTree<Type, Compare, Allocator>::rend() const noexcept {
+    return Const_reverse_iterator(begin());
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Const_reverse_iterator AVLTree<Type, Compare, Allocator>::crbegin() const noexcept {
+    return Const_reverse_iterator(cend());
+}
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Const_reverse_iterator AVLTree<Type, Compare, Allocator>::crend() const noexcept {
+    return Const_reverse_iterator(cbegin());
+}
+
+template<typename Type, typename Compare, typename Allocator>
+size_t AVLTree<Type, Compare, Allocator>::Height(Node *p){
+    return p?p->height_:0;
+}
+
+template<typename Type, typename Compare, typename Allocator>
+void AVLTree<Type, Compare, Allocator>::FixHeight(Node *p){
+    size_t hl = Height(p->left_);
+    size_t hr = Height(p->right_);
+    p->height_ = (hl>hr?hl:hr)+1;
+}
+
+template<typename Type, typename Compare, typename Allocator>
+void AVLTree<Type, Compare, Allocator>::AVLClear(Node *root){
+    if(root != nullptr){
+        AVLClear(root->left_);
+        AVLClear(root->right_);
+
+        root->~Node();
+        AllocTraitsNode::deallocate(alloc_,root,1);
+    }
+}
 
 template<typename Type, typename Compare, typename Allocator>
 typename AVLTree<Type,Compare,Allocator>::Node* AVLTree<Type, Compare, Allocator>::RemoveNode(Node *root, Type val_to_del){
@@ -303,19 +367,19 @@ typename AVLTree<Type,Compare,Allocator>::Node* AVLTree<Type, Compare, Allocator
         if(val_to_del == root->value_){
             if (root->left_ == nullptr && root->right_ == nullptr){
                 root->~Node();
-                AllocTraitsNode::deallocate(alloc,root,1);
+                AllocTraitsNode::deallocate(alloc_,root,1);
                 --size_;
                 return nullptr;
             }else if(root->left_ == nullptr){ // у ноды только правый ребенок
                 Node* temp = root->right_;
                 root->~Node();
-                AllocTraitsNode::deallocate(alloc,root,1);
+                AllocTraitsNode::deallocate(alloc_,root,1);
                 --size_;
                 return temp;
             }else if (root->right_ == nullptr){ // у ноды только левый  ребенок
                 Node* temp = root->left_;
                 root->~Node();
-                AllocTraitsNode::deallocate(alloc,root,1);
+                AllocTraitsNode::deallocate(alloc_,root,1);
                 --size_;
                 return temp;
             }else{
@@ -360,10 +424,8 @@ template<typename Type, typename Compare, typename Allocator>
 typename AVLTree<Type,Compare,Allocator>::Node* AVLTree<Type, Compare, Allocator>::CopyHelper(const Node *lhs, Node *root){
 
     if(root == nullptr && lhs != nullptr){
-
-        root = AllocTraitsNode::allocate(alloc,1);
-        AllocTraitsNode::construct(alloc,root,lhs->value_);
-        //root = new Node(lhs->value_);
+        root = AllocTraitsNode::allocate(alloc_,1);
+        AllocTraitsNode::construct(alloc_,root,lhs->value_);
     }else{
         return nullptr;
     }
@@ -493,8 +555,8 @@ template<typename Type, typename Compare, typename Allocator>
 typename AVLTree<Type,Compare,Allocator>::Node* AVLTree<Type, Compare, Allocator>::InsertHelper(Node *vertex, const Type &value){
     if( !vertex ){
         ++size_;
-        Node* node = AllocTraitsNode::allocate(alloc,1);
-        AllocTraitsNode::construct(alloc,node,value);
+        Node* node = AllocTraitsNode::allocate(alloc_,1);
+        AllocTraitsNode::construct(alloc_,node,value);
         return node;
     }
     if(value<vertex->value_){
