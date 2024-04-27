@@ -146,9 +146,11 @@ public:
 
     AVLTree(const AVLTree& rhs);
     template<typename InputIt>
+
     AVLTree(InputIt first,InputIt last,const Compare comp = Compare(),const Allocator& alloc = Allocator()):
         comp_(comp),main_alloc_(alloc){}
     template<typename InputIt>
+
     AVLTree(InputIt first,InputIt last,const Allocator& alloc = Allocator()):AVLTree(first,last,Compare(),alloc){}
     AVLTree& operator= (const AVLTree& rhs){
         if(this == &rhs){
@@ -164,7 +166,10 @@ public:
     //сравнение это не поэлементное счравнение а все ли элементыодного множества содержатсяв другом
     bool operator==(const AVLTree& rhs) const;
     bool operator!=(const AVLTree& rhs) const;
-
+    bool operator<(const AVLTree& rhs) const;
+    bool operator>(const AVLTree& rhs) const;
+    bool operator<=(const AVLTree& rhs) const;
+    bool operator>=(const AVLTree& rhs) const;
     void Swap(AVLTree& rhs);
 
     void Insert(const Type& key);
@@ -262,6 +267,26 @@ bool AVLTree<Type, Compare, Allocator>::operator==(const AVLTree &rhs) const{
 template<typename Type, typename Compare, typename Allocator>
 bool AVLTree<Type, Compare, Allocator>::operator!=(const AVLTree &rhs) const{
     return  !(*this == rhs);
+}
+
+template<typename Type, typename Compare, typename Allocator>
+bool AVLTree<Type, Compare, Allocator>::operator<(const AVLTree &rhs) const{
+    return (size == rhs.size_) && std::equal(begin(),end(),rhs.begin(),rhs.end(),std::less{});
+}
+
+template<typename Type, typename Compare, typename Allocator>
+bool AVLTree<Type, Compare, Allocator>::operator>(const AVLTree &rhs) const{
+    return rhs < *this;
+}
+
+template<typename Type, typename Compare, typename Allocator>
+bool AVLTree<Type, Compare, Allocator>::operator<=(const AVLTree &rhs) const{
+    return !(*this > rhs);
+}
+
+template<typename Type, typename Compare, typename Allocator>
+bool AVLTree<Type, Compare, Allocator>::operator>=(const AVLTree &rhs) const{
+    return !(this < rhs);
 }
 
 template<typename Type, typename Compare, typename Allocator>
