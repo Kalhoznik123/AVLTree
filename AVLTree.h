@@ -149,8 +149,18 @@ public:
 
     AVLTree(InputIt first,InputIt last,const Compare comp = Compare(),const Allocator& alloc = Allocator()):
         comp_(comp),main_alloc_(alloc){}
-    template<typename InputIt>
 
+    AVLTree( std::initializer_list<value_type> init,const Compare& comp = Compare(),
+             const Allocator& alloc = Allocator() ):comp_(comp),alloc_(alloc){
+        for(value_type& val: init){
+            Insert(std::move(val));
+        }
+        size_ = init.size();
+    }
+
+
+
+    template<typename InputIt>
     AVLTree(InputIt first,InputIt last,const Allocator& alloc = Allocator()):AVLTree(first,last,Compare(),alloc){}
     AVLTree& operator= (const AVLTree& rhs){
         if(this == &rhs){
@@ -173,6 +183,13 @@ public:
     void Swap(AVLTree& rhs);
 
     void Insert(const Type& key);
+    void Insert(Type&& key);
+
+    template<typename... Args>
+    void Emplace(Args&&... args){
+        Type val(std::forward<Args>(args)...);
+        root_ = InsertHelper(root_,std::move(val));
+    }
 
     size_t Size() const;
     bool Empty();
@@ -199,11 +216,13 @@ public:
 private:
     using AllocTraits = std::allocator_traits<Allocator>;
     using AllocTraitsNode = typename AllocTraits::template rebind_traits<Node>;
+
     Node* root_ = nullptr;
     size_t size_{0};
     const  Compare comp_;
     typename AllocTraits::template rebind_alloc<Node> alloc_;
     const Allocator main_alloc_;
+
     size_t Height(Node* p);
     size_t GetHeight(Node* vertex);
     void FixHeight(Node* p);
@@ -220,6 +239,9 @@ private:
     Node* InsertHelper(Node* vertex, const Type& value);
     static  Node* TreeMin(Node* root);
     static  Node* TreeMax(Node* root);
+
+    Node* InsertHelper(Node *vertex, Type&& value);
+
 };
 
 template<typename Type, typename Compare, typename Allocator>
@@ -298,7 +320,14 @@ void AVLTree<Type, Compare, Allocator>::Swap(AVLTree &rhs){
 
 template<typename Type, typename Compare, typename Allocator>
 void AVLTree<Type, Compare, Allocator>::Insert(const Type &key){
-    root_ = InsertHelper(root_,key);
+    Emplace(key);
+
+    //root_ = InsertHelper(root_,key);
+}
+
+template<typename Type, typename Compare, typename Allocator>
+void AVLTree<Type, Compare, Allocator>::Insert(Type &&key){
+    Emplace(std::move(key));
 }
 
 template<typename Type, typename Compare, typename Allocator>
@@ -625,3 +654,27 @@ typename AVLTree<Type,Compare,Allocator>::Node* AVLTree<Type, Compare, Allocator
         return root;
     return TreeMax(root->right_);
 }
+
+template<typename Type, typename Compare, typename Allocator>
+typename AVLTree<Type, Compare, Allocator>::Node* AVLTree<Type, Compare, Allocator>::InsertHelper(Node *vertex, Type &&value){
+
+    if( !vertex ){
+        ++size_;
+        Node* node = AllocTraitsNode::allocate(alloc_,1);
+        AllocTraitsNode::construct(alloc_,node,std::move(value));
+        return node;
+    }
+    if(value<vertex->value_){
+        vertex->left_ = InsertHelper(vertex->left_,std::move(value));
+        vertex->left_->parent_ = vertex;
+    }
+    else if (value == vertex->value_)
+        return vertex;
+    else{
+        vertex->right_ = InsertHelper(vertex->right_,std::move(value));
+        vertex->right_ ->parent_ = vertex;
+    }
+    return Rotate(vertex);
+
+}
+
